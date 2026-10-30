@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Compuerta radial – Análisis Estrucutral (2 planos) </title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2330;--card:#fff;--mut:#667;--ac:#1d5fa8;--bd:#d6dbe3;--ok:#1a7f45;--bad:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181f;--fg:#e6e9ee;--card:#1d232d;--mut:#97a1b0;--ac:#6aa9ee;--bd:#323b49;--ok:#4cc27f;--bad:#ff7a69}}
+:root[data-theme="dark"]{--bg:#14181f;--fg:#e6e9ee;--card:#1d232d;--mut:#97a1b0;--ac:#6aa9ee;--bd:#323b49;--ok:#4cc27f;--bad:#ff7a69}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:auto;padding:14px}h1{font-size:19px;margin:4px 0}h2{font-size:14px;margin:0 0 8px}
+.g{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;min-width:0}
+label{display:block;margin:8px 0 2px;color:var(--mut);font-size:12px}
+select,input[type=number]{width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg)}
+input[type=range]{width:100%}.ov{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600}svg{width:100%;height:auto;display:block}.sm{color:var(--mut);font-size:12px}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}
+#bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.bg{display:grid;gap:2px 12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}#bar label{margin:2px 0 1px}#bar select,#bar input[type=number]{padding:4px}
+#sec{display:none;margin-top:4px;padding-top:4px;border-top:1px dashed var(--bd)}#sec.on{display:grid}
+.kp{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px;font-size:12px;flex-wrap:wrap}#kpi{font-weight:600}
+#tg{border:1px solid var(--bd);background:var(--bg);color:var(--fg);border-radius:6px;padding:3px 8px}
+</style></head><body><main>
+<h1>Compuerta radial – Análisis Estructural (2 planos)</h1>
+<div class="sm">Modelo 2D simplificado según ref. 300000092-N-0801 / 0805 / 0901 / 0903. Valores iniciales = valores de ref.. Para reproducir N-0805 (σc = 191 MPa): Apertura, h = 0, «Tiro para brazos» = 200 bar (N-0802) y, en «Más ajustes», montante con C a 16 m.</div>
+<div id="bar">
+<div class="bg">
+<div><label>Maniobra</label><select id="mode"><option value="1">Apertura</option><option value="-1">Cierre</option></select></div>
+<div><label>Apertura h = <b id="vh"></b> m</label><input type="range" id="h" min="0" max="21.2" step="0.1" value="0"></div>
+<div><label>Nivel embalse = <b id="vz"></b> msnm</label><input type="range" id="z" min="400" max="425" step="0.05" value="421.585"></div>
+<div><label>μ muñones</label><input type="number" id="mu" min="0" max="0.5" step="0.01" value="0.15"></div>
+</div>
+<div class="bg" id="sec">
+<div><label>Tipo de compuerta</label><select id="tipo"><option value="con">Con solapa (P=255 t)</option><option value="sin">Sin solapa (P=240 t)</option></select></div>
+<div><label>Estado de la solapa</label><select id="sol"><option value="c">Cerrada (normal)</option><option value="a">Abierta (máx. carga)</option></select></div>
+<div><label>μs sellos laterales</label><input type="number" id="mus" min="0" max="2" step="0.05" value="0.8"></div>
+<div><label>Pandeo: sk/L (ref. 0.8)</label><input type="number" id="ksk" min="0.3" max="2" step="0.05" value="0.8"></div>
+<div><label>Tabla de ω (DIN 4114)</label><select id="omg"><option value="s52">Tabla adjunta St 52 (S355)</option><option value="s37">Tabla adjunta St 37</option><option value="fix">Fijo de la ref. (1.38)</option></select></div>
+<div><label>Distancia sección s [m]</label><input type="number" id="dist" min="0" max="24" step="0.1" value="4.3"></div>
+<div><label>Amplificación (vacío = auto)</label><input type="number" id="amp" min="1" step="10" placeholder="auto"></div>
+<div><label>Módulo de elasticidad E [GPa]</label><input type="number" id="E" min="1" step="1" value="210"></div>
+<div><label>Tiro para brazos y viga inferior</label><select id="tarm"><option value="act">Tiro real del modelo (condición actual)</option><option value="b200">200 bar según N-0802 §7.7 (3 275 kN)</option><option value="n200">20 MPa según N-0803 (3 342.7 kN)</option></select></div>
+<div><label>Montante: posición de C desde el muñón [m]</label><input type="number" id="rc" min="12" max="24" step="0.05" value="16"></div>
+<div><label>Montante: rigidez relativa (EA, EI) vs brazos</label><input type="number" id="kmo" min="0" step="0.25" value="1"></div>
+<div><label>Deformada</label><label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--fg)"><input type="checkbox" id="def" checked> Mostrar</label></div>
+</div>
+<div class="kp"><span id="kpi"></span><button id="tg" type="button">Más ajustes ▾</button></div>
+</div>
+<div class="g" style="margin-top:10px">
+<div class="c"><h2>Esquema (elevación, aguas arriba a la izquierda)</h2><svg id="sv" viewBox="0 0 520 480"></svg>
+<div class="ov" style="margin-top:10px"><h2>Cambios entre cierre y apertura – sección s = <span id="vs2"></span> m del muñón</h2><table id="tchg"></table>
+<div class="sm" style="margin-top:6px">Δ = cierre − apertura, con el mismo h, nivel de embalse, μ y ajustes. Convención: N&gt;0 compresión. Cada maniobra usa su propio equilibrio (tiro T y fricción Mt con signo invertido en cierre); si «Tiro para brazos» es 200 bar, el axial de la viga inferior es igual en ambas y Δ refleja solo el efecto de la fricción. σ = N/A + |Mx|/Wx + |My|/Wy.</div></div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c"><h2>Pórtico en planta (plano x-x)</h2><label>Pórtico</label><select id="frs"><option value="u">Superior (viga superior + brazos superiores)</option><option value="l">Inferior (viga inferior + brazos inferiores + tiro)</option></select><svg id="sv2" viewBox="0 0 520 400"></svg></div>
+<div class="c ov"><h2>Pórticos x-x – resumen</h2><table id="t8"></table></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Pandeo del brazo inferior (N-0805 §7.7) y sección terminal (§7.9)</h2><table id="t7"></table>
+<div class="sm" style="margin-top:6px">σc = ω·N/A + 0.9·(Mx/Wx + My/Wy), λ = sk/ix con sk = (sk/L)·24 120 mm e ix = 335 mm; A = 98 400 mm², W = 26·10⁶ mm³; admisible 0.6·345 = 207 MPa. N, Mx y My salen ahora de los pórticos en los dos planos: N del pórtico x-x, Mx = Mx en la unión / 2 y My = My máx. del pórtico y-y / 2, como la ref. Sección terminal: A = 239 090 mm², Wx = 56·10⁶, Wy = 50.4·10⁶ mm³. ω se interpola en las tablas DIN 4114 adjuntas (St 52 inicial).</div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Servomotor – verificaciones de N-0803</h2>
+<label>Evaluar con</label><select id="srv"><option value="act">Tiro de cada servomotor del modelo (condición actual)</option><option value="nom">Presión nominal 20 MPa (F = 3 342.7 kN)</option><option value="op">Tiro de operación de la ref. (2 599.7 kN)</option><option value="mar">Capacidad con margen 20 % de N-0801 (2 990 kN)</option></select>
+<div id="srvh" class="sm" style="margin:6px 0"></div><table id="t6"></table>
+<div class="sm" style="margin-top:6px">Las verificaciones de N-0803 se reescalan con la carga: las de presión (cilindro, tapas, tornillos, roscas) con p = F/167 133 mm²; las de fuerza (ojales, soldadura, pernos) con F. Admisibles de la ref.: cilindro S = R/3.5 = 140 MPa; tornillos clase 12.9: R/5 = 240 MPa; vástago 39CrNiMo3: 0.4σy = 216 MPa; ojales S355J2: 106 MPa; ojal del cilindro con S = 88 MPa (0.8·ZUL); perno: 248 MPa (condición N) y 166 MPa (operación). El límite de presión de contacto lo tomé como 0.55·σy: el símbolo no se extrajo del PDF. Fijas en la ref. (carga de diseño, no varían): bridas SH 27.6, SR 15.8, ST 11.4 MPa (adm. 199 / 128.5); par de apriete adoptado 2 200 N·m ≥ 1 404 N·m; tornillos émbolo–brida 174.3 &lt; 240 MPa; oreja de levantamiento p = 36.8 MPa, soldadura 24.8 &lt; 94 y Von Mises 65.6 &lt; 94 MPa.</div></div>
+</div>
+<div class="sm" style="margin-top:10px">Hipótesis: γ=1 t/m³ (según ref.), ancho 16.5 m, R=26 m, muñón en 410.90 msnm, r=0.35 m. Kh y Kp escalan con μs (0.8 en ref.). 1 t = 9.81 kN.</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Sistema hidráulico (N-0808 / N-0906)</h2><table id="t5"></table>
+<div class="sm" style="margin-top:6px">Servomotor de simple efecto Ø520/Ø240 mm, sección anular en tracción 167 133 mm², dos por compuerta. Presión en el cilindro = T/A. En apertura la presión en la bomba suma las pérdidas de carga de la ref.: tuberías 0.714 + unidad electrohidráulica 0.60 + cilindros 0.20 = 1.514 MPa. Bomba A4VSO 40 a 1780 rpm: 56 l/min; motor 25 kW; válvula de máxima presión 20 MPa (presión de diseño 20 MPa, prueba 30 MPa). Potencia = p·Q/(60·0.9). En cierre no actúa la bomba: se informa solo la presión de equilibrio en el cilindro; no se consideran pérdidas de retorno para la compuerta. No se modelan los servos de la solapa.</div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Sección a s = <span id="vs"></span> m del muñón</h2><table id="t4"></table>
+<div class="sm" style="margin-top:6px">Convención: N&gt;0 compresión; ε&gt;0 tracción. M = EI·κ en cada plano. ε axial = −N/(E·A); ε flexión = ±M·(h/2)/(E·J) con h/2 = 425 mm (cajón 850×850×30). En y-y la cara +y local es la inferior; en x-x es la exterior (hacia la pila). Esquina = superposición de axial, flexión y-y y flexión x-x.</div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Deformaciones de los brazos (dos planos)</h2><table id="t3"></table>
+<div class="sm" style="margin-top:6px">Pórtico y-y: brazos (A=98 400 mm², J=11·10⁹ mm⁴, E del campo, 210 GPa en la ref.) y montante D–C (rigidez relativa indicada; por defecto, el mismo perfil), apoyados en la compuerta (A y B articulados), con el muñón como nodo rígido cargado por N<sub>sup</sub>·e<sub>A</sub> + N<sub>inf</sub>·e<sub>B</sub> y el momento de fricción. Pórticos x-x: viga J = 68.3·10⁹ mm⁴ (A supuesta 0.30 m²), brazos articulados en el muñón, viga unida a cada brazo con un tramo rígido de 1.085 m. Deformada punteada = amplificada; gris = sin deformar.</div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Montante D–C (plano y-y)</h2><table id="t9"></table>
+<div class="sm" style="margin-top:6px">Ni N-0805 ni N-0802 verifican el montante ni dan su sección: aquí se supone el perfil de los brazos (850×850×30, A = 98 400 mm², W = 26·10⁶ mm³) multiplicado por la rigidez relativa de «Más ajustes». σ = |N|/A + M<sub>máx</sub>/W frente a 0.6·345 = 207 MPa; τ = V/A<sub>w</sub> con A<sub>w</sub> = 2·30·820 mm² frente a 0.39·345 = 135 MPa. N&gt;0 compresión.</div></div>
+</div>
+<div class="g" style="margin-top:12px">
+<div class="c ov"><h2>Fuerzas y reacciones (por soporte de muñón)</h2><table id="t1"></table></div>
+<div class="c ov"><h2>Brazos – análisis en dos planos (N-0805)</h2><table id="t2"></table>
+<div class="sm" style="margin-top:6px">Como la ref.: plano x-x (planta) = viga horizontal + brazos, que da el axial y Mx; plano y-y (elevación) = brazos con el montante D–C, apoyados en la compuerta, con la carga del muñón y el momento de fricción, que da My. σ = N/A + |Mx|/Wx + |My|/Wy (suma de compresiones) en s = longitud total, en la unión con el montante y a 3.5 m del muñón; admisible 207 MPa.</div></div>
+</div>
+<script>
+const R=26,L=16.5,G=9.81,ZC=410.90,TI=Math.asin(10.815/R),EXT=Math.asin(10.685/R)+TI;
+const $=i=>document.getElementById(i),f=(x,d=1)=>x.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+const FH=[[0,346.07,23.9],[1,300.92,23.9],[2,208.5,24],[3,70.6,24.2]];
+function hydro(w,zw,tb,tt){const te=Math.min(tt,Math.asin(Math.min(zw,R)/R));if(te<=tb)return{fh:0,fv:0,ip:0};
+ const S=Math.sin,C=Math.cos,fh=w*(zw*R*(S(te)-S(tb))-R*R*(S(te)**2-S(tb)**2)/2);
+ const br=zw*(C(tb)-C(te))-R*(te-tb)/2+R*(S(2*te)-S(2*tb))/4;
+ return{fh,fv:-w*R*br,ip:R*(zw*(te-tb)+R*(C(te)-C(tb)))}}
+function calc(sg){
+ const tipo=$('tipo').value,abierta=tipo=='con'&&$('sol').value=='a',h=+$('h').value,zw=+$('z').value-ZC,mu=+$('mu').value,mus=+$('mus').value,s=sg!==undefined?sg:+$('mode').value;
+ const tb=Math.asin((-10.815+h)/R),D=tb-(-TI);
+ let P=240,Rg=19.17,Hg=1.65;if(tipo=='con'){P=255;if(abierta){Rg=19.38;Hg=1.1865}else{Rg=19.402;Hg=1.1281}}
+ let Fh,Fv,ip;
+ if(abierta){const a=hydro(9,zw,tb,tb+EXT),b=hydro(7.5,zw,tb,tb+Math.asin(7.685/R)+TI);Fh=a.fh+b.fh;Fv=a.fv+b.fv;ip=a.ip}
+ else{const a=hydro(L,zw,tb,tb+EXT);Fh=a.fh;Fv=a.fv;ip=a.ip}
+ const ipw=hydro(1,zw,tb,tb+EXT).ip;
+ const Mp=P*Rg*Math.cos(Math.asin(Hg/Rg)-D);
+ let Msol=0;if(abierta&&h<3){let i=Math.min(2,Math.floor(h)),u=h-i,a=FH[i],b=FH[i+1];
+  Msol=(a[1]+(b[1]-a[1])*u)*(a[2]+(b[2]-a[2])*u)/G*Math.max(0.05,Math.min(zw,10.685)/10.685)}
+ const Lc=h<=10?17.1:17.1-(h-10)*5.1/11.2,Mv=2*26.06*(0.0306*ipw+0.077*Lc)*(mus/0.8);
+ const ph=Math.asin(8.42/24.05)-D,rx=-24.05*Math.cos(ph),rz=-24.05*Math.sin(ph),dx=-8.7-rx,dz=9.5-rz,dl=Math.hypot(dx,dz),ux=dx/dl,uz=dz/dl;
+ const arm=-(rx*uz-rz*ux),K=mu*0.35;let T=200,H=0,V=0,Rt=0;
+ for(let i=0;i<80;i++){H=Fh/2+T*ux;V=Fv/2+T*uz-P/2;Rt=Math.hypot(H,V);T=(Mp+Msol+s*(Mv+2*K*Rt))/(2*arm)}
+ H=Fh/2+T*ux;V=Fv/2+T*uz-P/2;Rt=Math.hypot(H,V);
+ return{tipo,abierta,h,zw,mu,D,tb,P,Fh,Fv,Mp,Msol,Mv,Mt:K*Rt,T,H,V,Rt,beta:Math.atan2(V,H)*180/Math.PI,gam:Math.acos(uz)*180/Math.PI,arm,alpha:Math.atan2(Fv,Fh)*180/Math.PI,ph,s,rx,rz,ux,uz,Rg,Hg}}
+
+function mm3(a,b){return a.map((r,i)=>b[0].map((_,j)=>r.reduce((s,_,k)=>s+a[i][k]*b[k][j],0)))}
+const tr=a=>a[0].map((_,j)=>a.map(r=>r[j]));
+function hydTable(r){const A=167133,pc=r.T*G*1000/A,loss=1.514,pb=pc+loss,Q=56,pot=pb*Q/(60*0.9),t=3356/21.2*(+$('h').value)/Q;
+ const q=(a,b,u,d=1,c='')=>`<tr><td>${a}</td><td class="${c}">${f(b,d)}</td><td>${u}</td></tr>`;
+ let h=`<tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr>`+q('Tiro por servomotor T',r.T*G,'kN',0)+q('Presión en el cilindro p = T/A',pc,'MPa',2,pc>20?'bad':'');
+ if(r.s>0)h+=q('Pérdidas de carga (ref., apertura)',loss,'MPa',3)+q('Presión en la bomba / válvula de máx. presión',pb,'MPa',2,pb>20?'bad':'ok')+q('Margen respecto a la presión de diseño (20 MPa)',20-pb,'MPa',2,pb>20?'bad':'ok')+
+  q('Potencia eléctrica requerida (motor 25 kW)',pot,'kW',1,pot>25?'bad':'ok')+q('Tiempo transcurrido desde cierre total a 56 l/min',t,'min',1);
+ else h+='<tr><td colspan=3 class="sm">Cierre: la bomba no interviene; p = T/A es la presión de equilibrio en el cilindro.</td></tr>';
+ if(r.T<0)h+='<tr><td colspan=3 class="bad">T&lt;0: el servomotor no genera presión positiva (cierra por peso).</td></tr>';
+ $('t5').innerHTML=h}
+
+const W37=[[20.6,1.04],[24.4,1.05],[29.0,1.07],[33.4,1.10],[37.8,1.12],[42.0,1.15],[46.0,1.18],[50.0,1.21],[53.8,1.24],[57.6,1.27],[61.2,1.31],[64.6,1.35],[68.1,1.38],[71.3,1.42],[74.4,1.46],[77.4,1.51],[80.3,1.55],[83.2,1.59],[85.9,1.64],[88.6,1.68],[91.3,1.73],[93.8,1.77],[96.3,1.82],[98.7,1.87],[101.1,1.92],[103.4,1.97],[105.6,2.02],[110.0,2.12],[114.1,2.22],[117.6,2.34]];
+const W52=[[20.4,1.05],[24.1,1.08],[28.6,1.10],[32.9,1.13],[37.1,1.16],[41.2,1.19],[45.1,1.23],[48.5,1.27],[52.5,1.31],[55.9,1.35],[59.2,1.40],[62.4,1.45],[65.4,1.50],[68.3,1.55],[71.1,1.60],[73.8,1.65],[76.5,1.71],[79.0,1.77],[81.5,1.82],[83.9,1.88],[86.2,1.94],[88.4,2.00],[90.4,2.07]];
+function ome(l,sel){if(sel=='fix')return 1.38;const T=sel=='s37'?W37:W52;if(l<T[0][0])return Math.max(1,1+(T[0][1]-1)*l/T[0][0]);
+ const n=T.length;if(l>T[n-1][0])return l*l/(sel=='s37'?5918:3951);
+ for(let i=1;i<n;i++)if(l<=T[i][0])return T[i-1][1]+(T[i][1]-T[i-1][1])*(l-T[i-1][0])/(T[i][0]-T[i-1][0])}
+function srvRows(F,sel){const p=F/167133,fp=F/3342655,pp=p/20,rows=[];
+ const add=(n,v,a,u='MPa',d=1)=>rows.push([n,v,a,u,d]);
+ add('Cilindro: σ circunferencial p·(R/tE+0.6)',p*(260/45+0.6),140);
+ add('Cilindro: espesor requerido p·R/(S−0.6p), tE = 45',p*260/(140-0.6*p),45,'mm');
+ add('Tornillos de tapas (22 M36): σ tracción',p*Math.PI/4*520*520/(22*865),240);
+ const tf=584*Math.sqrt(0.3*p/128.5+1.9*4288524*34/(128.5*584**3));
+ add('Tapa posterior: espesor requerido UG-34 (adoptado 183)',tf,183,'mm');
+ add('Tapa anterior: espesor requerido UG-34 (adoptado 281)',tf,281,'mm');
+ add('Unión vástago–émbolo: σ tracción en la rosca',p*Math.PI/4*(520*520-200*200)/28742,216);
+ add('Filete del vástago (émbolo): σ flexión',89.5*pp,216);
+ add('Filete del émbolo: σ flexión',87.8*pp,200);
+ add('Unión vástago–ojal: σ tracción en la rosca',F/30264,216);
+ add('Filete del vástago (ojal): σ flexión',96.1*fp,216);
+ add('Filete del ojal: σ flexión',89.9*fp,106);
+ add('Ojal del cilindro: presión de contacto F/(d·sj)',F/(370*110),151.25);
+ add('Ojal del cilindro: sección AA requerida F/(2·88)',F/176,20825,'mm²',0);
+ add('Ojal del cilindro: 1.4·AA requerida vs AB',1.4*F/176,27825,'mm²',0);
+ add('Soldadura del ojal del cilindro: τ',F/(1380*30),150);
+ add('Ojal del vástago: presión de contacto F/(2·d·s)',F/(2*220*109),145.75);
+ add('Ojal del vástago: sección AA requerida F/(4·84.8)',F/339.2,12535,'mm²',0);
+ add('Ojal del vástago: 1.4·AA requerida vs AB',1.4*F/339.2,14170,'mm²',0);
+ add('Perno del ojal del vástago: σ flexión B-B (adm. cond. N)',194.7*fp,248);
+ if(sel!='nom')add('Perno del ojal del vástago: σ flexión B-B (adm. operación 166 MPa)',194.7*fp,166);
+ return{rows,p}}
+function srvTable(r){const sel=$('srv').value,Tk=Math.max(0,r.T*G),F=sel=='nom'?3342655:sel=='op'?2599700:sel=='mar'?2990000:Tk*1000,{rows,p}=srvRows(F,sel);
+ let h=`<tr><th>Verificación</th><th>Valor</th><th>Admisible</th><th>Unidad</th><th>Uso</th></tr>`;
+ for(const [n,v,a,u,d] of rows){const k=v/a;h+=`<tr><td>${n}</td><td>${f(v,d)}</td><td>${f(a,d)}</td><td>${u}</td><td class="${k<=1?'ok':'bad'}">${f(k*100,0)} %</td></tr>`}
+ $('t6').innerHTML=h;
+ $('srvh').innerHTML=`F = ${f(F/1000,1)} kN por servomotor · p = ${f(p,2)} MPa (diseño 20, prueba 30 MPa) · en prueba a 30 MPa σ circunferencial = ${f(30*(260/45+0.6),1)} MPa`+(sel=='act'&&r.T<0?' · T&lt;0: sin carga de tracción':'')}
+let E_=210e6;const AA=0.0984,JJ=0.011,HH=0.425;
+function gauss(A,b){const n=b.length;for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(A[j][i])>Math.abs(A[p][i]))p=j;[A[i],A[p]]=[A[p],A[i]];[b[i],b[p]]=[b[p],b[i]];for(let j=i+1;j<n;j++){const m=A[j][i]/A[i][i];if(m){for(let k=i;k<n;k++)A[j][k]-=m*A[i][k];b[j]-=m*b[i]}}}const x=Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=b[i];for(let k=i+1;k<n;k++)s-=A[i][k]*x[k];x[i]=s/A[i][i]}return x}
+function frameSolve(nodes,els,fix,loads){
+ const n=nodes.length,N=3*n,K=Array.from({length:N},()=>Array(N).fill(0)),F=Array(N).fill(0),info=[];
+ for(const e of els){const [ax,az]=nodes[e.a],[bx,bz]=nodes[e.b],L=Math.hypot(bx-ax,bz-az),c=(bx-ax)/L,s=(bz-az)/L,a=e.EI/L**3,EA=e.EA,
+  k=[[EA/L,0,0,-EA/L,0,0],[0,12*a,6*a*L,0,-12*a,6*a*L],[0,6*a*L,4*a*L*L,0,-6*a*L,2*a*L*L],[-EA/L,0,0,EA/L,0,0],[0,-12*a,-6*a*L,0,12*a,-6*a*L],[0,6*a*L,2*a*L*L,0,-6*a*L,4*a*L*L]],
+  B=[[c,s,0],[-s,c,0],[0,0,1]],T6=Array.from({length:6},()=>Array(6).fill(0));
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++){T6[i][j]=B[i][j];T6[i+3][j+3]=B[i][j]}
+  const kg=mm3(mm3(tr(T6),k),T6),dof=[3*e.a,3*e.a+1,3*e.a+2,3*e.b,3*e.b+1,3*e.b+2];
+  for(let i=0;i<6;i++)for(let j=0;j<6;j++)K[dof[i]][dof[j]]+=kg[i][j];
+  info.push({L,c,s,k,T6,dof,a:e.a,b:e.b})}
+ for(const [nd,fx,fz,m] of loads){F[3*nd]+=fx;F[3*nd+1]+=fz;F[3*nd+2]+=m}
+ const fx=new Set();fix.forEach(([nd,fl])=>fl.forEach((v,i)=>{if(v)fx.add(3*nd+i)}));
+ const fr=[];for(let i=0;i<N;i++)if(!fx.has(i))fr.push(i);
+ const sol=gauss(fr.map(i=>fr.map(j=>K[i][j])),fr.map(i=>F[i])),d=Array(N).fill(0);fr.forEach((i,q)=>d[i]=sol[q]);
+ const R=K.map((row,i)=>row.reduce((s,v,j)=>s+v*d[j],0)-F[i]);
+ for(const o of info){o.dg=o.dof.map(i=>d[i]);o.dl=mm3(o.T6,o.dg.map(x=>[x])).map(x=>x[0]);o.f=mm3(o.k,o.dl.map(x=>[x])).map(x=>x[0])}
+ return{nodes,d,info,R}}
+function planFrame(kind,sq,Tn){
+ const EA=E_*AA,EI=E_*JJ,EAb=E_*0.30,EIb=E_*0.0683,Q=kind=='u'?[3962,3602,2342]:[3761,3419,2222],xs=[-7.65,-4.95,-1.65,1.65,4.95,7.65];
+ const nodes=[...xs.map(x=>[x,0]),[-4.95,-1.085],[4.95,-1.085],[-7.4,-25.09],[7.4,-25.09]];
+ const els=[[0,1],[1,2],[2,3],[3,4],[4,5]].map(([a,b])=>({a,b,EA:EAb,EI:EIb}));
+ els.push({a:1,b:6,EA:EAb*1e3,EI:EIb*1e3},{a:4,b:7,EA:EAb*1e3,EI:EIb*1e3},{a:8,b:6,EA,EI},{a:9,b:7,EA,EI});
+ const q3=Q[2]*sq+(kind=='l'?Tn:0),loads=[[0,0,-q3,0],[5,0,-q3,0],[1,0,-Q[1]*sq,0],[4,0,-Q[1]*sq,0],[2,0,-Q[0]*sq,0],[3,0,-Q[0]*sq,0]];
+ const s=frameSolve(nodes,els,[[8,[1,1,0]],[9,[1,1,0]]],loads),arm=s.info[7];
+ return{...s,kind,arm,N:arm.f[0],H:s.R[24],Qtot:2*(q3+Q[1]*sq+Q[0]*sq)}}
+function elevFrame(g,Nu,Nl,Mf){
+ const EA=E_*AA,EI=E_*JJ,nodes=[[0,0],g.A,g.B,g.D,g.C],els=[[0,3],[3,1],[0,4],[4,2],[3,4]].map(([a,b])=>{const k=(a==3&&b==4)?kmoVal():1;return{a,b,EA:EA*k,EI:EI*k}}),
+ na=Math.hypot(...g.A),nb=Math.hypot(...g.B),eA=[g.A[0]/na,g.A[1]/na],eB=[g.B[0]/nb,g.B[1]/nb];
+ return frameSolve(nodes,els,[[1,[1,1,0]],[2,[1,1,0]]],[[0,Nu*eA[0]+Nl*eB[0],Nu*eA[1]+Nl*eB[1],Mf]])}
+let FNBv=null;
+function FNB(){if(FNBv===null){const tb=-TI,a=hydro(L,421.585-ZC,tb,tb+EXT);FNBv=Math.hypot(a.fh,a.fv)*G}return FNBv}
+function armT(r){const m=$('tarm').value;return m=='b200'?3275:m=='n200'?3342.655:r.T*G}
+function rCval(){const v=+$('rc').value;return v>0?v:16}
+function kmoVal(){const v=$('kmo').value;return v===''?1:Math.max(0,+v)}
+function twoPlane(r){
+ const sq=Math.hypot(r.Fh,r.Fv)*G/FNB(),dx=-r.rx/24.05,dz=-r.rz/24.05,Tn=armT(r)*(r.ux*dx+r.uz*dz);
+ const pu=planFrame('u',sq,Tn),pl=planFrame('l',sq,Tn),Nu=pu.N,Nl=pl.N;
+ const pA0=-Math.asin(1.36/24.12),pB0=Math.asin(8.42/24.05),rC=rCval(),pA=pA0-r.D;
+ const g={A:[-24.12*Math.cos(pA),-24.12*Math.sin(pA)],B:[r.rx,r.rz],D:[-16*Math.cos(pA),-16*Math.sin(pA)],C:[-rC*Math.cos(r.ph),-rC*Math.sin(r.ph)]};
+ const ey=elevFrame(g,Nu,Nl,r.s*r.Mt*G);
+ return{sq,Tn,pu,pl,ey,Nu,Nl,p:{u:pu,l:pl}}}
+
+function chgTable(r){
+ const s0=+$('dist').value||0,ra=calc(1),rc=calc(-1),ta=twoPlane(ra),tc=twoPlane(rc);$('vs2').textContent=f(s0,2);
+ const ln=(n,a,c,u,d=0)=>{const dl=c-a,pc=Math.abs(a)>1e-9?dl/Math.abs(a)*100:null;return `<tr><td>${n}</td><td>${f(a,d)}</td><td>${f(c,d)}</td><td>${f(dl,d)}</td><td>${pc===null?'–':f(pc,0)+' %'}</td><td>${u}</td></tr>`};
+ let h=`<tr><th>Magnitud</th><th>Apertura</th><th>Cierre</th><th>Δ (cierre − apertura)</th><th>Δ %</th><th>Unidad</th></tr><tr><th colspan=6>Condición de carga</th></tr>`+
+  ln('Tiro por servomotor T',ra.T*G,rc.T*G,'kN')+ln('Momento de fricción aplicado en O (signo del modelo)',ra.s*ra.Mt*G,rc.s*rc.Mt*G,'kN·m')+ln('Tiro considerado en brazos',armT(ra),armT(rc),'kN');
+ for(const [k,n] of [['u','Brazo superior'],['l','Brazo inferior']]){const A=armSec(ta,k,s0),C=armSec(tc,k,s0),sg=q=>q.yy.N*1000/98400+Math.abs(q.xx.M)*1e6/26e6+Math.abs(q.yy.M)*1e6/26e6;
+  h+=`<tr><th colspan=6>${n}</th></tr>`+ln('Axial N (plano y-y)',A.yy.N,C.yy.N,'kN')+ln('Cortante Vy (plano y-y)',A.yy.V,C.yy.V,'kN')+ln('Momento flector My (plano y-y)',A.yy.M,C.yy.M,'kN·m')+
+   ln('Axial N (plano x-x)',A.xx.N,C.xx.N,'kN')+ln('Cortante Vx (plano x-x)',A.xx.V,C.xx.V,'kN')+ln('Momento flector Mx (plano x-x)',A.xx.M,C.xx.M,'kN·m')+ln('σ combinada (compresiones sumadas)',sg(A),sg(C),'MPa')}
+ $('tchg').innerHTML=h}
+function strutTable(r){const st=r.tp.ey.info[4],A=98400,W=26e6,Aw=2*30*820,N=st.f[0],V=Math.abs(st.f[1]),Md=Math.abs(st.f[2]),Mc=Math.abs(st.f[5]),Mm=Math.max(Md,Mc),
+ sg=Math.abs(N)*1000/A+Mm*1e6/W,tau=V*1000/Aw,k=kmoVal(),q=(n,v,u,d=0,c='')=>`<tr><td>${n}</td><td class="${c}">${f(v,d)}</td><td>${u}</td></tr>`;
+ $('t9').innerHTML=`<tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr>`+q('Longitud D–C',st.L,'m',2)+q('Rigidez relativa (EA, EI) vs brazos',k,'',2)+q('Axial N (compresión +)',N,'kN',1)+q('Cortante V',V,'kN',1)+q('Momento en el extremo D (brazo superior)',Md,'kN·m')+q('Momento en el extremo C (brazo inferior)',Mc,'kN·m')+
+  q('σ = |N|/A + Mmáx/W (adm. 207 MPa)',sg,'MPa',0)+q('Uso σ/σadm',sg/207*100,'%',0,sg<=207?'ok':'bad')+q('τ = V/Aw (adm. 135 MPa)',tau,'MPa',1)+q('Uso τ/τadm',tau/135*100,'%',0,tau<=135?'ok':'bad')}
+function armSec(tp,k,s){const ey=tp.ey,io=k=='u'?[0,1]:[2,3],L0=ey.info[io[0]].L,Lt=L0+ey.info[io[1]].L;s=Math.min(Math.max(s,0),Lt);
+ const o=s<=L0?ey.info[io[0]]:ey.info[io[1]],x=s<=L0?s:s-L0,a=tp.p[k].arm,xs=Math.min(s,a.L);
+ return{s,Lt,L0,yy:{N:o.f[0],V:o.f[1],M:-o.f[2]+o.f[1]*x},xx:{N:a.f[0],V:a.f[1],M:-a.f[2]+a.f[1]*xs}}}
+function armStats(tp,k){const Lt=armSec(tp,k,0).Lt;let My=0;for(let s=0;s<=Lt;s+=0.25)My=Math.max(My,Math.abs(armSec(tp,k,s).yy.M));My=Math.max(My,Math.abs(armSec(tp,k,Lt).yy.M));
+ const Mxt=Math.abs(tp.p[k].arm.f[5]),sts=[Lt,tp.ey.info[k=='u'?0:2].L,3.5].map(s=>{const q=armSec(tp,k,s);return{s,sg:q.yy.N*1000/98400+Math.abs(q.xx.M)*1e6/26e6+Math.abs(q.yy.M)*1e6/26e6}});
+ const w=sts.reduce((a,b)=>b.sg>a.sg?b:a);return{Lt,My,Mxt,N:armSec(tp,k,Lt).yy.N,sg:w.sg,at:w.s}}
+function armsTable(r){const tp=r.tp;let h=`<tr><th>Brazo</th><th>N [kN]</th><th>Mx tope [kN·m]</th><th>My máx [kN·m]</th><th>σ máx [MPa]</th><th>en s [m]</th><th>σ/σadm</th></tr>`;
+ for(const [k,n] of [['u','Superior'],['l','Inferior']]){const a=armStats(tp,k),u=a.sg/207;h+=`<tr><td>${n}</td><td>${f(a.N,0)}</td><td>${f(a.Mxt,0)}</td><td>${f(a.My,0)}</td><td>${f(a.sg,0)}</td><td>${f(a.at,1)}</td><td class="${u<=1?'ok':'bad'}">${f(u*100,0)} %</td></tr>`}
+ $('t2').innerHTML=h}
+function bk(r){const tp=r.tp,sk=(+$('ksk').value||0.8)*24120,lam=sk/335,om=ome(lam,$('omg').value),a=armStats(tp,'l'),N=tp.Nl,Mx=a.Mxt/2,My=a.My/2,
+ sg=om*N*1000/98400+0.9*(Mx*1e6/26e6+My*1e6/26e6),Ft=tp.Nu+tp.Nl,s35=[armSec(tp,'u',3.5),armSec(tp,'l',3.5)],Mxt=(Math.abs(s35[0].xx.M)+Math.abs(s35[1].xx.M))/2,Myt=r.Mt*G,
+ sgT=Ft*1000/239090+Mxt*1e6/56e6+Myt*1e6/50.4e6;
+ return{sk,lam,om,N,Mx,My,sg,u:sg/207,Ft,Mxt,Myt,sgT,uT:sgT/201}}
+function bkTable(r){const b=bk(r),q=(n,v,u,d=1,c='')=>`<tr><td>${n}</td><td class="${c}">${f(v,d)}</td><td>${u}</td></tr>`;
+ $('t7').innerHTML=`<tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr>`+q('Longitud de pandeo sk',b.sk,'mm',0)+q('Esbeltez λ = sk/ix',b.lam,'',1,b.lam>200?'bad':'')+q('Coeficiente ω ('+({fix:'fijo de la ref.',s37:'tabla St 37, interpolada',s52:'tabla St 52, interpolada'}[$('omg').value])+')',b.om,'',3)+
+ q('Axial N (brazo inferior, plano x-x)',b.N,'kN',0)+q('Mx = Mx tope / 2',b.Mx,'kN·m',0)+q('My = My máx / 2',b.My,'kN·m',0)+q('σc de pandeo',b.sg,'MPa',0)+q('σadm = 0.6·σy',207,'MPa',0)+q('Uso σc/σadm',b.u*100,'%',0,b.u<=1?'ok':'bad')+
+ `<tr><th colspan=3>Sección terminal (§7.9)</th></tr>`+q('Axial total Nu + Nl',b.Ft,'kN',0)+q('Mx (promedio de los brazos en s = 3.5 m)',b.Mxt,'kN·m',0)+q('My (fricción del muñón)',b.Myt,'kN·m',0)+q('σ en la sección terminal (adm. 201 MPa)',b.sgT,'MPa',0)+q('Uso',b.uT*100,'%',0,b.uT<=1?'ok':'bad')+
+ `<tr><td colspan=3 class="sm">N-0805: λ = 57.6, ω = 1.38, N = 12 247 kN, Mx = 317, My = 232.5 kN·m → σc = 191 MPa (92 %); sección terminal 115 MPa. En λ = 57.6: ω(St 52) = ${f(ome(57.6,'s52'),3)}, ω(St 37) = ${f(ome(57.6,'s37'),3)}.</td></tr>`}
+function strains(sec){const EA=E_*AA,EI=E_*JJ,ea=-sec.yy.N/EA*1e6,ey=sec.yy.M*HH/EI*1e6,ex=sec.xx.M*HH/EI*1e6;
+ return{ea,eySup:ey,eyInf:-ey,exInt:ex,exExt:-ex,SE:ea+ey-ex,SI:ea+ey+ex,IE:ea-ey-ex,II:ea-ey+ex}}
+function secTable(r){const s0=+$('dist').value||0,S=['u','l'].map(k=>armSec(r.tp,k,s0)),E=S.map(strains);$('vs').textContent=f(S[0].s,2);
+ const row=(n,a,u,d=0)=>`<tr><td>${n}</td><td>${f(a[0],d)}</td><td>${f(a[1],d)}</td><td>${u}</td></tr>`;
+ $('t4').innerHTML=`<tr><th>Magnitud</th><th>Brazo superior</th><th>Brazo inferior</th><th>Unidad</th></tr>`+
+ row('Axial N (plano y-y, compresión +)',S.map(q=>q.yy.N),'kN')+row('Cortante Vy (plano y-y)',S.map(q=>q.yy.V),'kN')+row('Momento My (plano y-y)',S.map(q=>q.yy.M),'kN·m')+
+ row('Cortante Vx (plano x-x)',S.map(q=>q.xx.V),'kN')+row('Momento Mx (plano x-x)',S.map(q=>q.xx.M),'kN·m')+
+ row('ε axial (todas las esquinas)',E.map(e=>e.ea),'µε')+row('ε flexión y-y – cara superior',E.map(e=>e.eySup),'µε')+row('ε flexión y-y – cara inferior',E.map(e=>e.eyInf),'µε')+
+ row('ε flexión x-x – cara exterior (pila)',E.map(e=>e.exExt),'µε')+row('ε flexión x-x – cara interior',E.map(e=>e.exInt),'µε')+
+ row('ε total – esquina superior exterior',E.map(e=>e.SE),'µε')+row('ε total – esquina superior interior',E.map(e=>e.SI),'µε')+row('ε total – esquina inferior exterior',E.map(e=>e.IE),'µε')+row('ε total – esquina inferior interior',E.map(e=>e.II),'µε')}
+function herm(o,nodes,t,amp){const [ax,az]=nodes[o.a],[bx,bz]=nodes[o.b],d=o.dl,L=o.L,t2=t*t,t3=t2*t,
+ u=d[0]+(d[3]-d[0])*t,v=d[1]*(1-3*t2+2*t3)+d[2]*L*(t-2*t2+t3)+d[4]*(3*t2-2*t3)+d[5]*L*(-t2+t3);
+ return[ax+(bx-ax)*t+amp*(u*o.c-v*o.s),az+(bz-az)*t+amp*(u*o.s+v*o.c),u,v]}
+function defo(r,X,Y){const ey=r.tp.ey;let dm=0;for(let i=0;i<5;i++)dm=Math.max(dm,Math.hypot(ey.d[3*i],ey.d[3*i+1]));
+ for(const o of ey.info)for(let i=0;i<=10;i++){const p=herm(o,ey.nodes,i/10,1),q=herm(o,ey.nodes,i/10,0);dm=Math.max(dm,Math.hypot(p[0]-q[0],p[1]-q[1]))}
+ const user=+$('amp').value,amp=user>0?user:Math.max(1,Math.round(18/(12*Math.max(dm,1e-9))));r.amp=amp;
+ let mk='';['u','l'].forEach(k=>{const A=k=='u'?ey.nodes[1]:ey.nodes[2],n=Math.hypot(...A),sd=Math.min(Math.max(+$('dist').value||0,0),n);mk+=`<circle cx="${X(A[0]*sd/n)}" cy="${Y(A[1]*sd/n)}" r="5" fill="none" stroke="var(--fg)" stroke-width="2"/>`});
+ if(!$('def').checked)return mk;let o='';
+ for(const e of ey.info){let a0='',a1='';for(let i=0;i<=24;i++){const p0=herm(e,ey.nodes,i/24,0),p1=herm(e,ey.nodes,i/24,amp);a0+=(i?'L':'M')+X(p0[0])+' '+Y(p0[1]);a1+=(i?'L':'M')+X(p1[0])+' '+Y(p1[1])}
+  o+=`<path d="${a0}" fill="none" stroke="#999" stroke-width="1.5" opacity=".6"/><path d="${a1}" fill="none" stroke="#e0368a" stroke-width="2.5" stroke-dasharray="5 3"/>`}
+ return mk+o+`<text x="8" y="452" font-size="11" fill="#e0368a">Deformada de los brazos (plano y-y) ×${f(amp,0)}</text>`}
+function defTable(r){const tp=r.tp,ey=tp.ey,q=(a,b,u,d=2)=>`<tr><td>${a}</td><td>${f(b,d)}</td><td>${u}</td></tr>`;let h=`<tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr>`;
+ h+=q('Desplazamiento del nodo del muñón O – horizontal',ey.d[0]*1000,'mm')+q('Desplazamiento del nodo del muñón O – vertical',ey.d[1]*1000,'mm');
+ [['u','Superior',[0,1]],['l','Inferior',[2,3]]].forEach(([k,n,io])=>{let sh=0,vm=0;for(const i of io){const e=ey.info[i];sh+=e.dl[3]-e.dl[0];for(let j=0;j<=20;j++){const p=herm(e,ey.nodes,j/20,1);const v=p[3];if(Math.abs(v)>Math.abs(vm))vm=v}}
+  h+=q(`Brazo ${n}: acortamiento axial`,-sh*1000,'mm')+q(`Brazo ${n}: flecha transversal máx. (plano y-y)`,vm*1000,'mm')});
+ for(const [k,n] of [['u','superior'],['l','inferior']]){const p=tp.p[k];let lm=0;for(let j=0;j<=20;j++){const v=herm(p.arm,p.nodes,j/20,1)[3];if(Math.abs(v)>Math.abs(lm))lm=v}
+  h+=q(`Pórtico ${n} (x-x): flecha de la viga en el centro`,(p.d[7]+p.d[10])/2*1000,'mm')+q(`Pórtico ${n} (x-x): flecha lateral máx. del brazo`,lm*1000,'mm')}
+ $('t3').innerHTML=h}
+function planDraw(r){const k=$('frs').value,p=r.tp.p[k],OX=260,OY=36,S=11,X=x=>OX+x*S,Y=z=>OY-z*S;let dm=0;for(let i=0;i<10;i++)dm=Math.max(dm,Math.hypot(p.d[3*i],p.d[3*i+1]));
+ const user=+$('amp').value,amp=user>0?user:Math.max(1,Math.round(15/(S*Math.max(dm,1e-9))));let mx=1;[0,1,2,3,4,7,8].forEach(i=>{mx=Math.max(mx,Math.abs(p.info[i].f[2]),Math.abs(p.info[i].f[5]))});const sc=45/mx;let o='';
+ for(const e of p.info){const a=p.nodes[e.a],b=p.nodes[e.b];o+=`<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="#999" stroke-width="${e.a<5&&e.b<6?4:2}"/>`}
+ [0,1,2,3,4,7,8].forEach(i=>{const e=p.info[i],a=p.nodes[e.a];let pts='',back='';for(let j=0;j<=20;j++){const x=e.L*j/20,M=-e.f[2]+e.f[1]*x,bx=a[0]+e.c*x,bz=a[1]+e.s*x,off=M*sc/S;pts+=`${X(bx)},${Y(bz)} `;back=`${X(bx-e.s*off)},${Y(bz+e.c*off)} `+back}
+  o+=`<polygon points="${pts+back}" fill="#3b82f6" fill-opacity=".25" stroke="#3b82f6" stroke-width="1"/>`});
+ for(const e of p.info){let d1='';for(let j=0;j<=16;j++){const q=herm(e,p.nodes,j/16,amp);d1+=(j?'L':'M')+X(q[0])+' '+Y(q[1])}o+=`<path d="${d1}" fill="none" stroke="#e0368a" stroke-width="2" stroke-dasharray="5 3"/>`}
+ for(const i of [8,9]){const n=p.nodes[i];o+=`<polygon points="${X(n[0])},${Y(n[1])} ${X(n[0])-7},${Y(n[1])+12} ${X(n[0])+7},${Y(n[1])+12}" fill="var(--fg)"/>`}
+ o+=`<text x="8" y="16" font-size="12" fill="var(--fg)">Pórtico ${k=='u'?'superior':'inferior'} (planta) – carga total en la viga ${f(p.Qtot,0)} kN</text><text x="8" y="30" font-size="11" fill="#3b82f6">Diagrama de momentos (máx. ${f(mx,0)} kN·m)</text><text x="8" y="392" font-size="11" fill="#e0368a">Deformada ×${f(amp,0)} (línea punteada)</text>`;
+ $('sv2').innerHTML=o;
+ const q=(n,a,b,u,d=0)=>`<tr><td>${n}</td><td>${f(a,d)}</td><td>${f(b,d)}</td><td>${u}</td></tr>`,P=r.tp.pu,L=r.tp.pl,bm=p=>Math.abs(-p.info[1].f[2]);
+ $('t8').innerHTML=`<tr><th>Magnitud</th><th>Superior</th><th>Inferior</th><th>Unidad</th></tr>`+q('Carga total sobre la viga',P.Qtot,L.Qtot,'kN')+q('Axial del brazo N',P.N,L.N,'kN')+q('Reacción horizontal en el muñón',Math.abs(P.H),Math.abs(L.H),'kN')+
+ q('Momento del brazo en la unión Mx',Math.abs(P.arm.f[5]),Math.abs(L.arm.f[5]),'kN·m')+q('Momento de la viga en la unión',Math.max(bm(P),Math.abs(P.info[0].f[5])),Math.max(bm(L),Math.abs(L.info[0].f[5])),'kN·m')+q('Momento de la viga en el centro',Math.abs(P.info[2].f[5]),Math.abs(L.info[2].f[5]),'kN·m')+
+ `<tr><td colspan=4 class="sm">N-0805 (NB): N = 9 958 / 12 245 kN, H = 1 015.5 / 1 217.2 kN, Mx = 106 / 634 kN·m, viga 7 531 / 14 197 en la unión y 5 543 / 1 786 en el centro.</td></tr>`}
+function draw(r){
+ const X=x=>420+x*12,Y=z=>330-z*12,sv=$('sv');let o='';
+ const pt=(rad,a)=>[X(-rad*Math.cos(a)),Y(rad*Math.sin(a))];
+ o+=`<line x1="0" x2="520" y1="${Y(r.zw)}" y2="${Y(r.zw)}" stroke="#2a8fd6" stroke-dasharray="6 3"/><text x="4" y="${Y(r.zw)-4}" font-size="11" fill="#2a8fd6">Embalse ${f(r.zw+ZC,2)}</text>`;
+ let d='';for(let i=0;i<=40;i++){const a=r.tb+EXT*i/40,p=pt(R,a);d+=(i?'L':'M')+p[0]+' '+p[1]}
+ o+=`<path d="${d}" fill="none" stroke="var(--fg)" stroke-width="5"/>`;
+ if(r.abierta){const q=pt(R,r.tb+Math.asin(7.685/R)+TI);o+=`<line x1="${q[0]}" y1="${q[1]}" x2="${q[0]+34}" y2="${q[1]+14}" stroke="var(--bad)" stroke-width="4"/><circle cx="${q[0]}" cy="${q[1]}" r="3" fill="var(--bad)"/><text x="${q[0]+8}" y="${q[1]-6}" font-size="11" fill="var(--bad)">Solapa abierta</text>`}
+
+ const phA=-Math.asin(1.36/24.12)-r.D,phB=r.ph,Au=[X(-24.12*Math.cos(phA)),Y(-24.12*Math.sin(phA))],Bl=[X(-24.05*Math.cos(phB)),Y(-24.05*Math.sin(phB))];
+ o+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${Au[0]}" y2="${Au[1]}" stroke="#d98a1c" stroke-width="4"/><line x1="${X(0)}" y1="${Y(0)}" x2="${Bl[0]}" y2="${Bl[1]}" stroke="#2f9e6b" stroke-width="4"/>`;
+ {const pA0=-Math.asin(1.36/24.12),pB0=Math.asin(8.42/24.05),rC=rCval(),pAd=pA0-r.D,Dp=[X(-16*Math.cos(pAd)),Y(-16*Math.sin(pAd))],Cp=[X(-rC*Math.cos(r.ph)),Y(-rC*Math.sin(r.ph))];
+  o+=`<line x1="${Dp[0]}" y1="${Dp[1]}" x2="${Cp[0]}" y2="${Cp[1]}" stroke="#8e44ad" stroke-width="6" stroke-linecap="round"/><circle cx="${Dp[0]}" cy="${Dp[1]}" r="4" fill="#8e44ad"/><circle cx="${Cp[0]}" cy="${Cp[1]}" r="4" fill="#8e44ad"/><text x="${(Dp[0]+Cp[0])/2+8}" y="${(Dp[1]+Cp[1])/2}" font-size="11" fill="#8e44ad">Montante D–C</text>`}
+ o+=`<line x1="${X(-8.7)}" y1="${Y(9.5)}" x2="${Bl[0]}" y2="${Bl[1]}" stroke="var(--ac)" stroke-width="3"/><rect x="${X(-8.7)-6}" y="${Y(9.5)-6}" width="12" height="12" fill="var(--ac)"/><text x="${X(-8.7)+10}" y="${Y(9.5)-8}" font-size="11" fill="var(--ac)">Servomotor T=${f(r.T*G,0)} kN</text>`;
+ o+=`<circle cx="${X(0)}" cy="${Y(0)}" r="7" fill="var(--fg)"/><text x="${X(0)-60}" y="${Y(0)+22}" font-size="11" fill="var(--fg)">Muñón C</text>`;
+ const k=0.02,rx=r.H*G*k/10,ry=-r.V*G*k/10;
+ o+=`<defs><marker id="m" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0L6,3L0,6z" fill="#c0392b"/></marker></defs><line x1="${X(0)}" y1="${Y(0)}" x2="${X(0)+rx}" y2="${Y(0)+ry}" stroke="#c0392b" stroke-width="3" marker-end="url(#m)"/><text x="${X(0)-20}" y="${Y(0)-14}" font-size="11" fill="#c0392b">R=${f(r.Rt*G,0)} kN</text>`;
+ o+=`<text x="8" y="470" font-size="11" fill="var(--mut)">Naranja: brazo superior · Verde: brazo inferior · Morado: montante D–C · Rojo: reacción</text>`;
+ o+=defo(r,X,Y);$('sv').innerHTML=o}
+function run(){E_=(+$('E').value>0?+$('E').value:210)*1e6;const r=calc();$('vh').textContent=f(+$('h').value,1);$('vz').textContent=f(+$('z').value,2);
+ $('sol').disabled=$('tipo').value=='sin';
+ const q=(n,v,u,d=1)=>`<tr><td>${n}</td><td>${f(v,d)}</td><td>${u}</td></tr>`;
+ $('t1').innerHTML=`<tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr>`+
+ q('Fuerza hidrostática horizontal Fh (total)',r.Fh*G,'kN',0)+q('Fuerza hidrostática vertical Fv (total)',r.Fv*G,'kN',0)+q('Ángulo α de la resultante',r.alpha,'°')+
+ q('Momento resistente peso Mp',r.Mp*G,'kN·m',0)+q('Momento flap hidrodinámico Msol',r.Msol*G,'kN·m',0)+q('Momento sellos laterales Mv',r.Mv*G,'kN·m',0)+q('Fricción muñón Mt (c/u)',r.Mt*G,'kN·m',0)+
+ q('Tiro por servomotor T',r.T*G,'kN',0)+q('Presión en el servomotor p=T/A',r.T*G*1000/167133,'MPa (nom. 20)',2)+q('Dirección del tiro γ (desde vertical)',r.gam,'°')+
+ q('Reacción en muñón H',r.H*G,'kN',0)+q('Reacción en muñón V (+ arriba)',r.V*G,'kN',0)+q('Reacción resultante R',r.Rt*G,'kN',0)+q('Ángulo β',r.beta,'°')+
+ (r.T<0?'<tr><td colspan=3 class="bad">T&lt;0: la compuerta cierra por peso, el servomotor retiene.</td></tr>':'');
+ r.tp=twoPlane(r);chgTable(r);strutTable(r);armsTable(r);draw(r);defTable(r);secTable(r);planDraw(r);hydTable(r);srvTable(r);bkTable(r);{const pc=r.T*G*1000/167133,pb=pc+1.514,Nl=0.5515*1.0898*r.Rt*G,Ml=0.435*r.Mt*G,sg=bk(r).u,
+ sr=srvRows(Math.max(0,r.T*G)*1000,'act').rows;let mx=0,mn='';for(const [n,v,al] of sr){if(v/al>mx){mx=v/al;mn=n.split(':')[0]}}
+ $('kpi').textContent=`T = ${f(r.T*G,0)} kN · p cil. = ${f(pc,1)} MPa`+(r.s>0?` · p bomba = ${f(pb,1)} MPa (margen ${f(20-pb,1)} MPa)`:'')+` · σc/σadm pandeo brazo inf. = ${f(sg*100,0)} % · uso máx. servo = ${f(mx*100,0)} % (${mn})`}}
+['tipo','sol','mode','h','z','mu','def','amp','dist','mus','srv','ksk','omg','frs','E','tarm','rc','kmo'].forEach(i=>$(i).addEventListener('input',run));$('tg').onclick=()=>{const o=$('sec').classList.toggle('on');$('tg').textContent=o?'Menos ajustes ▴':'Más ajustes ▾'};
+run();
+</script></main></body></html>
